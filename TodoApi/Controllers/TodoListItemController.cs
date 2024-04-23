@@ -1,4 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.Blazor;
+using System.Runtime.Intrinsics.X86;
+using System;
 using TodoApi.DataAccessLayer;
 using TodoApi.Models;
 
@@ -21,7 +25,6 @@ namespace TodoApi.Controllers
             _itemRepository = todoListItemRepository;
         }
 
-
         // GET api/<TodoListItemController>/5
         [HttpGet("{listId}")]
         [ProducesResponseType(typeof(IEnumerable<TodoListItem>), 200)]
@@ -37,22 +40,57 @@ namespace TodoApi.Controllers
             return Ok(_itemRepository.GetAll(listId));
         }
 
-        // POST api/<TodoListItemController>
-        [HttpPost]
-        public void Post([FromBody] string value)
+        // POST api/<TodoListItemController>/5
+        [HttpPost("{itemId}")]
+        [ProducesResponseType(typeof(bool), 200)]
+        public IActionResult Post(long itemId, [FromQuery] string name, [FromQuery] bool done) // update
         {
+            var existingItem = _itemRepository.GetOne(itemId);
+            if (existingItem == null)
+            {
+                return NotFound();
+            }
+            if (existingItem.TodoList.Owner != owner) {
+                return Forbid();
+            }
+            return Ok(_itemRepository.UpdateTodoListItem(itemId, name, done));
         }
 
         // PUT api/<TodoListItemController>/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
+        [HttpPut("{listId}")] 
+        [ProducesResponseType(typeof(long), 200)]
+        public IActionResult Put(long listId, [FromQuery] string name, [FromQuery] bool done) // create
         {
+
+            var existingList = _listRepository.GetOne(listId);
+            if (existingList == null)
+            {
+                return NotFound();
+            }
+            if (existingList.Owner != owner) {
+                return Forbid();
+            }
+            // don't need to catch the exception because we check that condition earlier
+            return Ok(_itemRepository.InsertTodoListItem(listId, name, done));
         }
 
+
         // DELETE api/<TodoListItemController>/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
+        [HttpDelete("{itemId}")]
+        [ProducesResponseType(typeof(bool), 200)]
+        public IActionResult Delete(long itemId)
         {
+            
+            var existingItem = _itemRepository.GetOne(itemId);
+            if (existingItem == null)
+            {
+                return NotFound();
+            }
+            if (existingItem.TodoList.Owner != owner) {
+                return Forbid();
+            }
+            return Ok(_itemRepository.DeleteTodoListItem(itemId));
         }
+
     }
 }
