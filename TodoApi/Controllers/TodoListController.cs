@@ -13,9 +13,9 @@ namespace TodoApi.Controllers
     {
         private string owner;
         private ITodoListRepository todoListRepository;
-        TodoListController(IHttpContextAccessor httpContextAccessor, ITodoListRepository todoListRepository) {
-            var session = httpContextAccessor.HttpContext?.Session;
-            owner = session?.GetString("user") ?? session?.Id ?? ""; // TODO: instead of defaulting to "", return 401 Unauthorized
+        public TodoListController(ITodoListRepository todoListRepository) {
+            // var session = httpContextAccessor.HttpContext?.Session;
+            owner = "caleb"; // session?.GetString("user") ?? session?.Id ?? ""; // TODO: instead of defaulting to "", return 401 Unauthorized
             this.todoListRepository = todoListRepository;
         }
         // GET: api/<TodoListController>

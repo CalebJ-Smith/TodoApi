@@ -1,5 +1,4 @@
-﻿using Microsoft.IdentityModel.Tokens;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using TodoApi.Models;
 
@@ -7,7 +6,7 @@ namespace TodoApi.DataAccessLayer
 {
     public class InMemoryTodoListRepository : ITodoListRepository
     {
-        internal class TodoListWrapper
+        public class TodoListWrapper
         {
             public TodoList Inner { get; set; }
             public ReaderWriterLockSlim Lock { get; set; }
@@ -22,7 +21,7 @@ namespace TodoApi.DataAccessLayer
         internal IDictionary<string, IDictionary<long, TodoListWrapper>> ownerToLists; // owner to the lists that owner owns
         private long nextId = 0;
 
-        InMemoryTodoListRepository(IDictionary<long, TodoListWrapper> listIdToList,
+        public InMemoryTodoListRepository(IDictionary<long, TodoListWrapper> listIdToList,
             IDictionary<string, IDictionary<long,  TodoListWrapper>> ownerToLists)
         {
             this.listIdToList = listIdToList;

@@ -18,9 +18,9 @@ namespace TodoApi.Controllers
         private string owner;
         private ITodoListRepository _listRepository;
         private ITodoListItemRepository _itemRepository;
-        public TodoListItemController(IHttpContextAccessor httpContextAccessor, ITodoListRepository todoListRepository, ITodoListItemRepository todoListItemRepository) {
-            var session = httpContextAccessor.HttpContext?.Session;
-            owner = session?.GetString("user") ?? session?.Id ?? "";
+        public TodoListItemController(ITodoListRepository todoListRepository, ITodoListItemRepository todoListItemRepository) {
+            // var session = httpContextAccessor.HttpContext?.Session;
+            owner = "caleb";// session?.GetString("user") ?? session?.Id ?? "";
             _listRepository = todoListRepository;
             _itemRepository = todoListItemRepository;
         }

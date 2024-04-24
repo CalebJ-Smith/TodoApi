@@ -10,7 +10,7 @@ namespace TodoApi.DataAccessLayer
         IDictionary<long, TodoListItem> itemIdToItem;
         private long nextItemId = 0;
 
-        InMemoryTodoListItemRepository(ITodoListRepository listRepository,
+        public InMemoryTodoListItemRepository(ITodoListRepository listRepository,
             IDictionary<long, IDictionary<long, TodoListItem>> listIdToItems,
             IDictionary<long, TodoListItem> itemIdToItem)
         {
