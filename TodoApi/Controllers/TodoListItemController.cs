@@ -43,7 +43,7 @@ namespace TodoApi.Controllers
         // POST api/<TodoListItemController>/5
         [HttpPost("{itemId}")]
         [ProducesResponseType(typeof(bool), 200)]
-        public IActionResult Post(long itemId, [FromQuery] string name, [FromQuery] bool done) // update
+        public IActionResult Post(long itemId, [FromQuery] string description, [FromQuery] bool done) // update
         {
             var existingItem = _itemRepository.GetOne(itemId);
             if (existingItem == null)
@@ -53,7 +53,7 @@ namespace TodoApi.Controllers
             if (existingItem.TodoList.Owner != owner) {
                 return Forbid();
             }
-            return Ok(_itemRepository.UpdateTodoListItem(itemId, name, done));
+            return Ok(_itemRepository.UpdateTodoListItem(itemId, description, done));
         }
 
         // PUT api/<TodoListItemController>/5

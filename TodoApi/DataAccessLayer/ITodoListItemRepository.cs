@@ -9,7 +9,7 @@ namespace TodoApi.DataAccessLayer
         // returns the itemId
         long InsertTodoListItem(long listId, string name, bool done);
         // returns true if something was updated
-        bool UpdateTodoListItem(long itemId, string name, bool isComplete);
+        bool UpdateTodoListItem(long itemId, string description, bool isComplete);
         // returns true if something was deleted
         bool DeleteTodoListItem(long itemId);
         void Save();

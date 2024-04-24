@@ -16,7 +16,8 @@ namespace TodoApi.DataAccessLayer
             }
         }
 
-        internal ReaderWriterLockSlim repoLock = new ReaderWriterLockSlim();
+        internal ReaderWriterLockSlim repoLock = new ReaderWriterLockSlim(); // necessary (instead of just two ConcurrentDictionary's)
+                                                                             // to keep coordinated state between the two dictionaries consistent
         internal IDictionary<long, TodoListWrapper> listIdToList;                      // listId to all lists, irrespective of owner
         internal IDictionary<string, IDictionary<long, TodoListWrapper>> ownerToLists; // owner to the lists that owner owns
         private long nextId = 0;
@@ -36,7 +37,10 @@ namespace TodoApi.DataAccessLayer
             if (listIdToList.TryGetValue(listId, out var existingList))
             {
                 listExisted = true;
-                ownerToLists[existingList.Inner.Owner].Remove(listId);
+                if (ownerToLists.TryGetValue(existingList.Inner.Owner, out var ownersLists))
+                {
+                    ownersLists.Remove(listId);
+                }
                 // however, don't remove the owner mapping 
                 listIdToList.Remove(listId);
             }
@@ -52,16 +56,24 @@ namespace TodoApi.DataAccessLayer
 
         public IEnumerable<TodoList> GetAllByOwner(string owner)
         {
+            IEnumerable<TodoList> ownerLists = [];
             repoLock.EnterReadLock();
-            var ownerLists = ownerToLists[owner].Select(a => a.Value.Inner);
+            if (ownerToLists.TryGetValue(owner, out var wrapperList))
+            {
+                ownerLists = wrapperList.Select(a => a.Value.Inner);
+            }
             repoLock.ExitReadLock();
             return ownerLists;
         }
 
         public TodoList? GetOne(long listId)
         {
+            TodoList? toRet = null; 
             repoLock.EnterReadLock();
-            var toRet = listIdToList[listId]?.Inner;
+            if(listIdToList.TryGetValue(listId, out var val))
+            {
+                toRet = val.Inner;
+            }
             repoLock.ExitReadLock();
             return toRet;
         }
@@ -71,8 +83,18 @@ namespace TodoApi.DataAccessLayer
             repoLock.EnterWriteLock();
             var newList = new TodoList { Owner = owner, Title = title , ListId = nextId};
             var newWrapper = new TodoListWrapper(newList);
-            ownerToLists[owner][nextId] = newWrapper;
-            listIdToList[nextId] = newWrapper;
+            if (ownerToLists.TryGetValue(owner, out var listsForOwner)) // Upsert ownerToLists[owner][nextId] = newWrapper;
+            {
+                listsForOwner.Add(nextId, newWrapper);
+            } else
+            {
+                ownerToLists.Add(owner, new Dictionary<long, TodoListWrapper>
+                {
+                    { nextId, newWrapper }
+                });
+
+            }
+            listIdToList.Add(nextId, newWrapper);
 
             nextId += 1;
             repoLock.ExitWriteLock();
@@ -86,9 +108,17 @@ namespace TodoApi.DataAccessLayer
 
         public void UpdateTodoList(TodoList todoList)
         {
-            listIdToList[todoList.ListId].Lock.EnterWriteLock();
-            listIdToList[todoList.ListId].Inner = todoList;
-            listIdToList[todoList.ListId].Lock.ExitWriteLock();
+            repoLock.EnterReadLock();
+            if (listIdToList.TryGetValue(todoList.ListId, out var list) ){
+                list.Lock.EnterWriteLock();
+                repoLock.ExitReadLock();// hand-over-hand locking
+                list.Inner = todoList;
+                list.Lock.ExitWriteLock();
+            }
+            else
+            {
+                repoLock.ExitReadLock();
+            }
         }
     }
 }

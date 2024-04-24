@@ -52,9 +52,13 @@ namespace TodoApi.DataAccessLayer
         public ICollection<TodoListItem> GetAll(long listId)
         {
             Lock.EnterReadLock();
-            var items = listIdToItems[listId]?.Values;
+            ICollection<TodoListItem> items = [];
+            if (listIdToItems.TryGetValue(listId, out var itemsDict))
+            {
+                items = itemsDict.Values;
+            }
             Lock.ExitReadLock();
-            return items ?? [] ;
+            return items;
         }
 
         public TodoListItem? GetOne(long itemId)
@@ -68,27 +72,29 @@ namespace TodoApi.DataAccessLayer
         // Requires that listId already exists
         public long InsertTodoListItem(long listId, string name, bool done)
         {
-            Lock.EnterUpgradeableReadLock();
-            var createdItemId = nextItemId;
-            try
+            long createdItemId;
+            var list = listRepository.GetOne(listId);
+            if (list == null)
             {
-                var list = listRepository.GetOne(listId);
-                if (list == null)
-                {
-                    throw new KeyNotFoundException($"listId {listId} not found; required to create a list item");
-                }
-                createdItemId = nextItemId;
-                var item = new TodoListItem { IsComplete = done, ItemId = createdItemId, Name = name, TodoList= list };
-
-                Lock.EnterWriteLock();
-                itemIdToItem[nextItemId] = item;
-                listIdToItems[listId][nextItemId] = item;
-                nextItemId += 1;
-                Lock.ExitWriteLock();
-            } finally
-            {
-                Lock.ExitUpgradeableReadLock();
+                throw new KeyNotFoundException($"listId {listId} not found; required to create a list item");
             }
+            Lock.EnterUpgradeableReadLock();
+            createdItemId = nextItemId;
+            var item = new TodoListItem { IsComplete = done, ItemId = createdItemId, Description = name, TodoList = list };
+
+            Lock.EnterWriteLock();
+            itemIdToItem.Add(nextItemId, item);
+            if (listIdToItems.TryGetValue(listId, out var items))
+            {
+                items.Add(nextItemId, item);
+            }
+            else
+            {
+                listIdToItems.Add(listId, new Dictionary<long, TodoListItem> { { nextItemId, item } });
+            }
+            nextItemId += 1;
+            Lock.ExitWriteLock();
+            Lock.ExitUpgradeableReadLock();
             return createdItemId;
         }
 
@@ -97,14 +103,15 @@ namespace TodoApi.DataAccessLayer
             // Not applicable for an in-memory database
         }
 
-        public bool UpdateTodoListItem(long itemId, string name, bool isComplete)
+        public bool UpdateTodoListItem(long itemId, string description, bool isComplete)
         {
             Lock.EnterUpgradeableReadLock();
             var updated = false;
-            if (itemIdToItem.TryGetValue(itemId, out var existingItem)){
+            if (itemIdToItem.TryGetValue(itemId, out var existingItem))
+            {
                 updated = true;
                 Lock.EnterWriteLock();
-                existingItem.Name = name;
+                existingItem.Description = description;
                 existingItem.IsComplete = isComplete;
                 Lock.ExitWriteLock();
             }
