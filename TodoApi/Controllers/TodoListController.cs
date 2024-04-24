@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
+using System.Text;
 using TodoApi.DataAccessLayer;
 using TodoApi.Models;
 
@@ -13,9 +14,16 @@ namespace TodoApi.Controllers
     {
         private string owner;
         private ITodoListRepository todoListRepository;
-        public TodoListController(ITodoListRepository todoListRepository) {
-            // var session = httpContextAccessor.HttpContext?.Session;
-            owner = "caleb"; // session?.GetString("user") ?? session?.Id ?? ""; // TODO: instead of defaulting to "", return 401 Unauthorized
+        public TodoListController(IHttpContextAccessor httpContextAccessor, ITodoListRepository todoListRepository) {
+            var session = httpContextAccessor.HttpContext?.Session;
+            if (session.TryGetValue("user", out var ownerBytes)) // TODO: not sure what to do about null
+            {
+                owner = System.Text.Encoding.Default.GetString(ownerBytes);
+            }else
+            {
+                session.SetString("user", session.Id);
+                owner = session.Id;
+            }
             this.todoListRepository = todoListRepository;
         }
         // GET: api/<TodoListController>
